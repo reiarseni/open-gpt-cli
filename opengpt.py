@@ -13,6 +13,7 @@ from api import send_request
 from exports import export_response
 from context import ConversationContext  # Import context management module
 from session import SessionManager       # Import session manager for session persistence
+from promts import PromptsManager          # Import prompts manager for important prompt persistence
 
 def main() -> None:
     """
@@ -28,6 +29,9 @@ def main() -> None:
 
     # Initialize session manager for session persistence.
     session_manager: SessionManager = SessionManager()
+
+    # Initialize prompts manager for important prompt persistence.
+    prompts_manager: PromptsManager = PromptsManager()
 
     # Check if API key is present; if not, securely prompt the user.
     api_key: str = os.getenv("OPENROUTER_API_KEY", "").strip()
@@ -53,7 +57,7 @@ def main() -> None:
 
     # Welcome message and instructions.
     console.print("[bold green]✨ Welcome to Open-GPT CLI! ✨[/bold green]")
-    console.print("Type your question or type 'exit' to quit. Commands: /export-md, /export-html, /save-session, /list-sessions, /load-session\n")
+    console.print("Type your question or type 'exit' to quit. Commands: /export-md, /export-html, /save-session, /list-sessions, /load-session, /save-prompt, /list-prompts, /load-prompt\n")
 
     while True:
         # Prompt the user for input.
@@ -114,6 +118,56 @@ def main() -> None:
                     console.print("[bold yellow]⚠️ Please enter a valid number.[/bold yellow]")
             else:
                 console.print("[bold yellow]No saved sessions to load.[/bold yellow]")
+            continue
+
+        # Handle important prompt persistence commands.
+        if question.startswith("/save-prompt"):
+            # Prompt the user to enter the prompt text to save.
+            console.print("[bold cyan]Enter the prompt text to save:[/bold cyan]", end=" ")
+            prompt_text = input(">> ").strip()
+            if prompt_text:
+                filename = prompts_manager.save_prompt(prompt_text)
+                console.print(f"[bold green]💾 Prompt saved: {filename}[/bold green]")
+            else:
+                console.print("[bold yellow]⚠️ Prompt text cannot be empty.[/bold yellow]")
+            continue
+
+        if question.startswith("/list-prompts"):
+            # List all saved important prompts.
+            prompts = prompts_manager.list_prompts()
+            if prompts:
+                console.print("[bold blue]Saved Prompts:[/bold blue]")
+                for idx, prom in enumerate(prompts, 1):
+                    console.print(f"{idx}. {prom}")
+            else:
+                console.print("[bold yellow]No saved prompts found.[/bold yellow]")
+            continue
+
+        if question.startswith("/load-prompt"):
+            # List prompts and prompt the user to select one to load.
+            prompts = prompts_manager.list_prompts()
+            if prompts:
+                console.print("[bold blue]Available Prompts:[/bold blue]")
+                for idx, prom in enumerate(prompts, 1):
+                    console.print(f"{idx}. {prom}")
+                console.print("Enter the prompt number to load:", end=" ")
+                selection = input(">> ").strip()
+                try:
+                    selection_index = int(selection) - 1
+                    if 0 <= selection_index < len(prompts):
+                        loaded_prompt = prompts_manager.load_prompt(prompts[selection_index])
+                        if loaded_prompt:
+                            # Insert the loaded prompt into the conversation context as a user message.
+                            context_manager.add_user_message(loaded_prompt)
+                            console.print(f"[bold green]🔄 Prompt '{prompts[selection_index]}' loaded into the conversation context.[/bold green]")
+                        else:
+                            console.print("[bold red]❌ Failed to load prompt.[/bold red]")
+                    else:
+                        console.print("[bold yellow]⚠️ Invalid prompt number.[/bold yellow]")
+                except ValueError:
+                    console.print("[bold yellow]⚠️ Please enter a valid number.[/bold yellow]")
+            else:
+                console.print("[bold yellow]No saved prompts to load.[/bold yellow]")
             continue
 
         # Handle export commands.
