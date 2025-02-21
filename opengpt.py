@@ -2,9 +2,8 @@
 import os
 import sys
 import json
-import argparse
 import requests
-from dotenv import load_dotenv
+from dotenv import load_dotenv, set_key
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -46,46 +45,54 @@ def send_request(question, api_key, model, site_url=None, site_title=None):
 def main():
     # Load environment variables.
     load_dotenv()
+    env_path = ".env"
+    console = Console()
+
+    # Check if API key is present, otherwise ask the user.
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
-        print("Error: The variable OPENROUTER_API_KEY is not defined in the .env file")
-        sys.exit(1)
+        console.print("[bold yellow]No API key found! Let's add one now.[/bold yellow]")
+        api_key = input("Enter your OpenRouter API key: ").strip()
+        if not api_key:
+            console.print("[bold red]API key cannot be empty![/bold red]")
+            sys.exit(1)
+        set_key(env_path, "OPENROUTER_API_KEY", api_key)
 
     model = os.getenv("OPENROUTER_MODEL")
     if not model:
-        print("Error: The variable OPENROUTER_MODEL is not defined in the .env file")
+        console.print("[bold red]Error: The variable OPENROUTER_MODEL is not defined in the .env file[/bold red]")
         sys.exit(1)
 
     site_url = os.getenv("SITE_URL", "").strip() or None
     site_title = os.getenv("SITE_TITLE", "").strip() or None
 
-    parser = argparse.ArgumentParser(
-        description="Console program to send requests to the OpenRouter API."
-    )
-    # Positional parameter: the question text to send.
-    parser.add_argument("question", type=str, help="Question text to send")
-    #args = parser.parse_args()
-    q = "Enter a question: "
-    question = input(q)
+    console.print("[bold green]Welcome to Open-GPT CLI![/bold green]")
+    console.print("Type your question or type 'exit' to quit. Let's have some fun!\n")
 
-    result = send_request(question, api_key, model, site_url, site_title)
-    console = Console()
+    while True:
+        console.print("[bold cyan]What's on your mind? (or 'exit' to quit):[/bold cyan]", end=" ")
+        question = input(">> ").strip()
+        if question.lower() in ['exit', 'quit']:
+            console.print("[bold magenta]Goodbye! Stay curious and keep coding![/bold magenta]")
+            break
 
-    # If there is an error in the response, display the error message along with the full response.
-    if "error" in result:
-        console.print("[bold red]Error:[/bold red]", result["error"])
-        console.print("Full response:")
-        console.print_json(data=result)
-    else:
-        try:
-            content = result["choices"][0]["message"]["content"]
-            # Render the content as Markdown.
-            md = Markdown(content)
-            console.print(md)
-        except Exception as e:
-            console.print(f"[bold red]Error extracting content:[/bold red] {e}")
+        result = send_request(question, api_key, model, site_url, site_title)
+
+        # Display result
+        if "error" in result:
+            console.print("[bold red]Error:[/bold red]", result["error"])
             console.print("Full response:")
             console.print_json(data=result)
+        else:
+            try:
+                content = result["choices"][0]["message"]["content"]
+                md = Markdown(content)
+                console.print(md)
+            except Exception as e:
+                console.print(f"[bold red]Error extracting content:[/bold red] {e}")
+                console.print("Full response:")
+                console.print_json(data=result)
+        console.print("\n[dim]-----------------------------[/dim]\n")
 
 if __name__ == '__main__':
     main()
