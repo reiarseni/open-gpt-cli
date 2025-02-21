@@ -11,6 +11,7 @@ from rich.markdown import Markdown
 from rich.prompt import Confirm
 from api import send_request
 from exports import export_response
+from context import ConversationContext  # Import context management module
 
 def main() -> None:
     """
@@ -21,11 +22,14 @@ def main() -> None:
     env_path: str = ".env"
     console: Console = Console()
 
+    # Initialize the conversation context with a maximum of 10 messages.
+    context_manager: ConversationContext = ConversationContext(max_messages=10)
+
     # Check if API key is present; if not, securely prompt the user.
     api_key: str = os.getenv("OPENROUTER_API_KEY", "").strip()
     if not api_key:
         console.print("[bold yellow]🔑 No API key found! Let's add one now.[/bold yellow]")
-        # Use getpass to prevent the API key from being displayed.
+        # Use getpass to prevent the API key from being displayed on the screen.
         api_key = getpass.getpass("Enter your OpenRouter API key: ").strip()
         if not api_key:
             console.print("[bold red]❌ API key cannot be empty![/bold red]")
@@ -39,13 +43,16 @@ def main() -> None:
         console.print("[bold red]❌ Error: The variable OPENROUTER_MODEL is not defined in the .env file[/bold red]")
         sys.exit(1)
 
+    # Retrieve optional site parameters.
     site_url: str = os.getenv("SITE_URL", "").strip() or None
     site_title: str = os.getenv("SITE_TITLE", "").strip() or None
 
+    # Welcome message and instructions.
     console.print("[bold green]✨ Welcome to Open-GPT CLI! ✨[/bold green]")
     console.print("Type your question or type 'exit' to quit. Commands: /export-md, /export-html\n")
 
     while True:
+        # Prompt the user for input.
         console.print("[bold cyan]🔍 What's on your mind? (or 'exit' to quit):[/bold cyan]", end=" ")
         question: str = input(">> ").strip()
 
@@ -54,6 +61,7 @@ def main() -> None:
             console.print("[bold yellow]⚠️ Please enter a valid, non-empty question.[/bold yellow]")
             continue
 
+        # Exit condition.
         if question.lower() in ['exit', 'quit']:
             console.print("[bold magenta]👋 Goodbye! Stay curious and keep coding![/bold magenta]")
             break
@@ -72,20 +80,37 @@ def main() -> None:
                 console.print(f"[bold green]🌐 Exported to HTML: {filename}[/bold green]")
             continue
 
-        # Store the current question for potential export.
-        main.last_question = question
+        # Add the current user message to the conversation context.
+        context_manager.add_user_message(question)
+        # Retrieve the current conversation history including the new message.
+        payload_history = context_manager.get_context()
 
-        result = send_request(question, api_key, model, site_url, site_title, console=console)
+        # Send the API request with the conversation context.
+        result = send_request(
+            question,
+            api_key,
+            model,
+            site_url,
+            site_title,
+            console=console,
+            history=payload_history  # Passing the conversation context
+        )
 
-        # Display the result.
+        # Process the API response.
         if "error" in result:
             console.print("[bold red]❌ Error:[/bold red]", result["error"])
             console.print("Full response:")
             console.print_json(data=result)
         else:
             try:
+                # Extract the assistant's reply from the API result.
                 content: str = result["choices"][0]["message"]["content"]
+                # Add the assistant's response to the conversation context.
+                context_manager.add_assistant_message(content)
+                # Store the last question and response for potential export.
+                main.last_question = question
                 main.last_response = content
+                # Display the assistant's response using markdown formatting.
                 md: Markdown = Markdown(content)
                 console.print(md)
 
@@ -107,9 +132,11 @@ def main() -> None:
                     '''
 
             except Exception as e:
+                # Handle any exceptions during response processing.
                 console.print(f"[bold red]⚠️ Error extracting content:[/bold red] {e}")
                 console.print("Full response:")
                 console.print_json(data=result)
+        # Print a separator after each interaction.
         console.print("\n[dim]✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧[/dim]\n")
 
 

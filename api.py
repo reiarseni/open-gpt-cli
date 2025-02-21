@@ -5,7 +5,7 @@ Module for handling API requests.
 import sys
 import requests
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from rich.console import Console
 
 def send_request(
@@ -14,7 +14,8 @@ def send_request(
     model: str,
     site_url: Optional[str] = None,
     site_title: Optional[str] = None,
-    console: Optional[Console] = None
+    console: Optional[Console] = None,
+    history: Optional[List[dict]] = None  # New parameter for conversation context
 ) -> Dict:
     """
     Sends a request to the API and returns the JSON response.
@@ -26,6 +27,7 @@ def send_request(
         site_url (Optional[str]): URL of the site.
         site_title (Optional[str]): Title of the site.
         console (Optional[Console]): Rich console for progress display.
+        history (Optional[List[dict]]): Conversation context as a list of messages.
 
     Returns:
         Dict: The JSON response from the API.
@@ -41,16 +43,15 @@ def send_request(
     if site_title:
         headers["X-Title"] = site_title
 
+    # Build the payload using conversation history if provided.
+    if history is None:
+        messages = [{"role": "user", "content": [{"type": "text", "text": question}]}]
+    else:
+        messages = history
+
     payload = {
         "model": model,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": question}
-                ]
-            }
-        ]
+        "messages": messages
     }
 
     with Progress(
