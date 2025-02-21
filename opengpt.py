@@ -35,7 +35,7 @@ def send_request(question, api_key, model, site_url=None, site_title=None, conso
 
     with Progress(
             SpinnerColumn(spinner_name="point"),
-            TextColumn("[bold green]Thinking...[/bold green]"),
+            TextColumn("[bold green]🧠 Thinking...[/bold green]"),
             TimeElapsedColumn(),
             console=console,
             transient=True
@@ -63,36 +63,36 @@ def main():
     # Check if API key is present, otherwise ask the user.
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
-        console.print("[bold yellow]No API key found! Let's add one now.[/bold yellow]")
+        console.print("[bold yellow]🔑 No API key found! Let's add one now.[/bold yellow]")
         api_key = input("Enter your OpenRouter API key: ").strip()
         if not api_key:
-            console.print("[bold red]API key cannot be empty![/bold red]")
+            console.print("[bold red]❌ API key cannot be empty![/bold red]")
             sys.exit(1)
         set_key(env_path, "OPENROUTER_API_KEY", api_key)
 
     model = os.getenv("OPENROUTER_MODEL")
     if not model:
-        console.print("[bold red]Error: The variable OPENROUTER_MODEL is not defined in the .env file[/bold red]")
+        console.print("[bold red]❌ Error: The variable OPENROUTER_MODEL is not defined in the .env file[/bold red]")
         sys.exit(1)
 
     site_url = os.getenv("SITE_URL", "").strip() or None
     site_title = os.getenv("SITE_TITLE", "").strip() or None
 
-    console.print("[bold green]Welcome to Open-GPT CLI![/bold green]")
+    console.print("[bold green]✨ Welcome to Open-GPT CLI! ✨[/bold green]")
     console.print("Type your question or type 'exit' to quit. Let's have some fun!\n")
 
     while True:
-        console.print("[bold cyan]What's on your mind? (or 'exit' to quit):[/bold cyan]", end=" ")
+        console.print("[bold cyan]🔍 What's on your mind? (or 'exit' to quit):[/bold cyan]", end=" ")
         question = input(">> ").strip()
         if question.lower() in ['exit', 'quit']:
-            console.print("[bold magenta]Goodbye! Stay curious and keep coding![/bold magenta]")
+            console.print("[bold magenta]👋 Goodbye! Stay curious and keep coding![/bold magenta]")
             break
 
         result = send_request(question, api_key, model, site_url, site_title, console=console)
 
         # Display result
         if "error" in result:
-            console.print("[bold red]Error:[/bold red]", result["error"])
+            console.print("[bold red]❌ Error:[/bold red]", result["error"])
             console.print("Full response:")
             console.print_json(data=result)
         else:
@@ -101,10 +101,10 @@ def main():
                 md = Markdown(content)
                 console.print(md)
             except Exception as e:
-                console.print(f"[bold red]Error extracting content:[/bold red] {e}")
+                console.print(f"[bold red]⚠️ Error extracting content:[/bold red] {e}")
                 console.print("Full response:")
                 console.print_json(data=result)
-        console.print("\n[dim]-----------------------------[/dim]\n")
+        console.print("\n[dim]✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧[/dim]\n")
 
 
 if __name__ == '__main__':
