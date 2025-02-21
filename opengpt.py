@@ -12,6 +12,7 @@ from rich.prompt import Confirm
 from api import send_request
 from exports import export_response
 from context import ConversationContext  # Import context management module
+from session import SessionManager       # Import session manager for session persistence
 
 def main() -> None:
     """
@@ -24,6 +25,9 @@ def main() -> None:
 
     # Initialize the conversation context with a maximum of 10 messages.
     context_manager: ConversationContext = ConversationContext(max_messages=10)
+
+    # Initialize session manager for session persistence.
+    session_manager: SessionManager = SessionManager()
 
     # Check if API key is present; if not, securely prompt the user.
     api_key: str = os.getenv("OPENROUTER_API_KEY", "").strip()
@@ -49,22 +53,68 @@ def main() -> None:
 
     # Welcome message and instructions.
     console.print("[bold green]✨ Welcome to Open-GPT CLI! ✨[/bold green]")
-    console.print("Type your question or type 'exit' to quit. Commands: /export-md, /export-html\n")
+    console.print("Type your question or type 'exit' to quit. Commands: /export-md, /export-html, /save-session, /list-sessions, /load-session\n")
 
     while True:
         # Prompt the user for input.
         console.print("[bold cyan]🔍 What's on your mind? (or 'exit' to quit):[/bold cyan]", end=" ")
         question: str = input(">> ").strip()
 
-        # Validate that the question is not empty.
+        # Validate that the input is not empty.
         if not question:
-            console.print("[bold yellow]⚠️ Please enter a valid, non-empty question.[/bold yellow]")
+            console.print("[bold yellow]⚠️ Please enter a valid, non-empty command or question.[/bold yellow]")
             continue
 
         # Exit condition.
         if question.lower() in ['exit', 'quit']:
             console.print("[bold magenta]👋 Goodbye! Stay curious and keep coding![/bold magenta]")
             break
+
+        # Handle session persistence commands.
+        if question.startswith("/save-session"):
+            # Save the current conversation session.
+            filename = session_manager.save_session(context_manager.get_context())
+            console.print(f"[bold green]💾 Session saved: {filename}[/bold green]")
+            continue
+
+        if question.startswith("/list-sessions"):
+            # List all saved sessions.
+            sessions = session_manager.list_sessions()
+            if sessions:
+                console.print("[bold blue]Saved Sessions:[/bold blue]")
+                for idx, sess in enumerate(sessions, 1):
+                    console.print(f"{idx}. {sess}")
+            else:
+                console.print("[bold yellow]No saved sessions found.[/bold yellow]")
+            continue
+
+        if question.startswith("/load-session"):
+            # List sessions and prompt the user to select one to load.
+            sessions = session_manager.list_sessions()
+            if sessions:
+                console.print("[bold blue]Available Sessions:[/bold blue]")
+                for idx, sess in enumerate(sessions, 1):
+                    console.print(f"{idx}. {sess}")
+                console.print("Enter the session number to load:", end=" ")
+                selection = input(">> ").strip()
+                try:
+                    selection_index = int(selection) - 1
+                    if 0 <= selection_index < len(sessions):
+                        loaded = session_manager.load_session(sessions[selection_index])
+                        if loaded is not None:
+                            # Replace the current conversation context with the loaded session.
+                            from collections import deque
+                            context_manager.history = deque(loaded, maxlen=10)
+                            console.print(f"[bold green]🔄 Session '{sessions[selection_index]}' loaded successfully.[/bold green]")
+                        else:
+                            console.print("[bold red]❌ Failed to load session.[/bold red]")
+                    else:
+                        console.print("[bold yellow]⚠️ Invalid session number.[/bold yellow]")
+                except ValueError:
+                    console.print("[bold yellow]⚠️ Please enter a valid number.[/bold yellow]")
+            else:
+                console.print("[bold yellow]No saved sessions to load.[/bold yellow]")
+            continue
 
         # Handle export commands.
         if question.startswith("/export-"):
