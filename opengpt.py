@@ -4,6 +4,7 @@ Main CLI module for the Open-GPT CLI application.
 """
 import os
 import sys
+import getpass  # Import getpass to securely input sensitive data.
 from dotenv import load_dotenv, set_key
 from rich.console import Console
 from rich.markdown import Markdown
@@ -17,14 +18,16 @@ def main():
     env_path = ".env"
     console = Console()
 
-    # Check if API key is present; if not, prompt the user.
+    # Check if API key is present; if not, securely prompt the user.
     api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         console.print("[bold yellow]🔑 No API key found! Let's add one now.[/bold yellow]")
-        api_key = input("Enter your OpenRouter API key: ").strip()
+        # Use getpass to prevent the API key from being displayed.
+        api_key = getpass.getpass("Enter your OpenRouter API key: ").strip()
         if not api_key:
             console.print("[bold red]❌ API key cannot be empty![/bold red]")
             sys.exit(1)
+        # Save the API key securely to the .env file.
         set_key(env_path, "OPENROUTER_API_KEY", api_key)
 
     # Ensure that the model is defined.
@@ -42,6 +45,11 @@ def main():
     while True:
         console.print("[bold cyan]🔍 What's on your mind? (or 'exit' to quit):[/bold cyan]", end=" ")
         question = input(">> ").strip()
+
+        # Validate that the question is not empty.
+        if not question:
+            console.print("[bold yellow]⚠️ Please enter a valid, non-empty question.[/bold yellow]")
+            continue
 
         if question.lower() in ['exit', 'quit']:
             console.print("[bold magenta]👋 Goodbye! Stay curious and keep coding![/bold magenta]")
