@@ -6,8 +6,10 @@ import requests
 from dotenv import load_dotenv, set_key
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
-def send_request(question, api_key, model, site_url=None, site_title=None):
+
+def send_request(question, api_key, model, site_url=None, site_title=None, console=None):
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -31,16 +33,26 @@ def send_request(question, api_key, model, site_url=None, site_title=None):
         ]
     }
 
-    try:
-        response = requests.post(url, headers=headers, json=payload)
-        response.raise_for_status()  # Raises an exception if an HTTP error occurs.
-        return response.json()
-    except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP Error: {http_err}")
-        sys.exit(1)
-    except Exception as err:
-        print(f"Error: {err}")
-        sys.exit(1)
+    with Progress(
+            SpinnerColumn(spinner_name="point"),
+            TextColumn("[bold green]Thinking...[/bold green]"),
+            TimeElapsedColumn(),
+            console=console,
+            transient=True
+    ) as progress:
+        task = progress.add_task("Waiting for response", total=None)
+
+        try:
+            response = requests.post(url, headers=headers, json=payload)
+            response.raise_for_status()  # Raises an exception if an HTTP error occurs.
+            return response.json()
+        except requests.exceptions.HTTPError as http_err:
+            print(f"HTTP Error: {http_err}")
+            sys.exit(1)
+        except Exception as err:
+            print(f"Error: {err}")
+            sys.exit(1)
+
 
 def main():
     # Load environment variables.
@@ -76,7 +88,7 @@ def main():
             console.print("[bold magenta]Goodbye! Stay curious and keep coding![/bold magenta]")
             break
 
-        result = send_request(question, api_key, model, site_url, site_title)
+        result = send_request(question, api_key, model, site_url, site_title, console=console)
 
         # Display result
         if "error" in result:
@@ -93,6 +105,7 @@ def main():
                 console.print("Full response:")
                 console.print_json(data=result)
         console.print("\n[dim]-----------------------------[/dim]\n")
+
 
 if __name__ == '__main__':
     main()
