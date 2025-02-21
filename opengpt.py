@@ -5,6 +5,7 @@ Main CLI module for the Open-GPT CLI application.
 import os
 import sys
 import getpass
+import readline  # Import readline for command autocompletion
 from dotenv import load_dotenv, set_key
 from rich.console import Console
 from rich.markdown import Markdown
@@ -12,8 +13,46 @@ from rich.prompt import Confirm
 from api import send_request
 from exports import export_response
 from context import ConversationContext  # Import context management module
-from session import SessionManager       # Import session manager for session persistence
-from promts import PromptsManager          # Import prompts manager for important prompt persistence
+from session import SessionManager  # Import session manager for session persistence
+from promts import PromptsManager  # Import prompts manager for important prompt persistence
+
+# Define the list of available commands for autocompletion.
+COMMANDS = [
+    "/export-md",
+    "/export-html",
+    "/save-session",
+    "/list-sessions",
+    "/load-session",
+    "/save-prompt",
+    "/list-prompts",
+    "/load-prompt",
+    "exit",
+    "quit",
+]
+
+
+def completer(text: str, state: int) -> str:
+    """
+    Autocompletion function for readline.
+
+    Args:
+        text (str): The current text entered.
+        state (int): The index of the matching option.
+
+    Returns:
+        str: The matching command or None if no more matches.
+    """
+    options = [cmd for cmd in COMMANDS if cmd.startswith(text)]
+    if state < len(options):
+        return options[state]
+    else:
+        return None
+
+
+# Configure readline to use the completer function.
+readline.set_completer(completer)
+readline.parse_and_bind("tab: complete")
+
 
 def main() -> None:
     """
@@ -57,7 +96,8 @@ def main() -> None:
 
     # Welcome message and instructions.
     console.print("[bold green]✨ Welcome to Open-GPT CLI! ✨[/bold green]")
-    console.print("Type your question or type 'exit' to quit. Commands: /export-md, /export-html, /save-session, /list-sessions, /load-session, /save-prompt, /list-prompts, /load-prompt\n")
+    console.print(
+        "Type your question or type 'exit' to quit. Commands: /export-md, /export-html, /save-session, /list-sessions, /load-session, /save-prompt, /list-prompts, /load-prompt\n")
 
     while True:
         # Prompt the user for input.
