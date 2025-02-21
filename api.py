@@ -5,8 +5,17 @@ Module for handling API requests.
 import sys
 import requests
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
+from typing import Optional, Dict
+from rich.console import Console
 
-def send_request(question: str, api_key: str, model: str, site_url: str = None, site_title: str = None, console=None) -> dict:
+def send_request(
+    question: str,
+    api_key: str,
+    model: str,
+    site_url: Optional[str] = None,
+    site_title: Optional[str] = None,
+    console: Optional[Console] = None
+) -> Dict:
     """
     Sends a request to the API and returns the JSON response.
 
@@ -14,12 +23,12 @@ def send_request(question: str, api_key: str, model: str, site_url: str = None, 
         question (str): The user's question.
         api_key (str): The API key for authentication.
         model (str): The model to be used.
-        site_url (str, optional): URL of the site.
-        site_title (str, optional): Title of the site.
-        console (Console, optional): Rich console for progress display.
+        site_url (Optional[str]): URL of the site.
+        site_title (Optional[str]): Title of the site.
+        console (Optional[Console]): Rich console for progress display.
 
     Returns:
-        dict: The JSON response from the API.
+        Dict: The JSON response from the API.
     """
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
@@ -45,11 +54,11 @@ def send_request(question: str, api_key: str, model: str, site_url: str = None, 
     }
 
     with Progress(
-            SpinnerColumn(spinner_name="point"),
-            TextColumn("[bold green]🧠 Thinking...[/bold green]"),
-            TimeElapsedColumn(),
-            console=console,
-            transient=True
+        SpinnerColumn(spinner_name="point"),
+        TextColumn("[bold green]🧠 Thinking...[/bold green]"),
+        TimeElapsedColumn(),
+        console=console,
+        transient=True
     ) as progress:
         progress.add_task("Waiting for response", total=None)
         try:

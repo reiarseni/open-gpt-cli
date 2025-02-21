@@ -4,7 +4,7 @@ Main CLI module for the Open-GPT CLI application.
 """
 import os
 import sys
-import getpass  # Import getpass to securely input sensitive data.
+import getpass
 from dotenv import load_dotenv, set_key
 from rich.console import Console
 from rich.markdown import Markdown
@@ -12,14 +12,17 @@ from rich.prompt import Confirm
 from api import send_request
 from exports import export_response
 
-def main():
+def main() -> None:
+    """
+    Main function that runs the Open-GPT CLI application.
+    """
     # Load environment variables.
     load_dotenv()
-    env_path = ".env"
-    console = Console()
+    env_path: str = ".env"
+    console: Console = Console()
 
     # Check if API key is present; if not, securely prompt the user.
-    api_key = os.getenv("OPENROUTER_API_KEY")
+    api_key: str = os.getenv("OPENROUTER_API_KEY", "").strip()
     if not api_key:
         console.print("[bold yellow]🔑 No API key found! Let's add one now.[/bold yellow]")
         # Use getpass to prevent the API key from being displayed.
@@ -31,20 +34,20 @@ def main():
         set_key(env_path, "OPENROUTER_API_KEY", api_key)
 
     # Ensure that the model is defined.
-    model = os.getenv("OPENROUTER_MODEL")
+    model: str = os.getenv("OPENROUTER_MODEL", "").strip()
     if not model:
         console.print("[bold red]❌ Error: The variable OPENROUTER_MODEL is not defined in the .env file[/bold red]")
         sys.exit(1)
 
-    site_url = os.getenv("SITE_URL", "").strip() or None
-    site_title = os.getenv("SITE_TITLE", "").strip() or None
+    site_url: str = os.getenv("SITE_URL", "").strip() or None
+    site_title: str = os.getenv("SITE_TITLE", "").strip() or None
 
     console.print("[bold green]✨ Welcome to Open-GPT CLI! ✨[/bold green]")
     console.print("Type your question or type 'exit' to quit. Commands: /export-md, /export-html\n")
 
     while True:
         console.print("[bold cyan]🔍 What's on your mind? (or 'exit' to quit):[/bold cyan]", end=" ")
-        question = input(">> ").strip()
+        question: str = input(">> ").strip()
 
         # Validate that the question is not empty.
         if not question:
@@ -81,9 +84,9 @@ def main():
             console.print_json(data=result)
         else:
             try:
-                content = result["choices"][0]["message"]["content"]
+                content: str = result["choices"][0]["message"]["content"]
                 main.last_response = content
-                md = Markdown(content)
+                md: Markdown = Markdown(content)
                 console.print(md)
 
                 '''  
@@ -92,7 +95,7 @@ def main():
                     console.print("[bold]Select export format:[/bold]")
                     console.print("1. Markdown (.md)")
                     console.print("2. HTML (.html)")
-                    format_choice = input("Enter choice (1/2): ").strip()
+                    format_choice: str = input("Enter choice (1/2): ").strip()
                     if format_choice == "1":
                         filename = export_response(question, content, "markdown")
                         console.print(f"[bold green]📝 Exported to Markdown: {filename}[/bold green]")
@@ -108,6 +111,7 @@ def main():
                 console.print("Full response:")
                 console.print_json(data=result)
         console.print("\n[dim]✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧✧[/dim]\n")
+
 
 if __name__ == '__main__':
     main()

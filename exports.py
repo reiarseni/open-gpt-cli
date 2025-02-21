@@ -6,6 +6,7 @@ import datetime
 import os
 from pathlib import Path
 import html
+from typing import Union
 
 def export_response(question: str, response_content: str, format_type: str) -> Path:
     """
@@ -20,14 +21,14 @@ def export_response(question: str, response_content: str, format_type: str) -> P
         Path: The file path to the exported file.
     """
     # Create exports directory if it doesn't exist.
-    exports_dir = Path("exports")
+    exports_dir: Path = Path("exports")
     exports_dir.mkdir(exist_ok=True)
 
     # Generate a timestamp for the filename.
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp: str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
     if format_type == "markdown":
-        filename = exports_dir / f"response_{timestamp}.md"
+        filename: Path = exports_dir / f"response_{timestamp}.md"
         with open(filename, "w", encoding="utf-8") as f:
             f.write(f"# Conversation Export\n\n")
             f.write(f"**Date:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
